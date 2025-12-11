@@ -1,0 +1,16 @@
+{
+  "name": "parceltrack-system",
+  "version": "1.0.0",
+  "description": "Courier and Parcel Management System",
+  "scripts": {
+    "backend:dev": "cd backend && npm run start:dev",
+    "backend:build": "cd backend && npm run build",
+    "frontend:dev": "cd frontend && npm start",
+    "frontend:build": "cd frontend && npm run build",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "keywords": ["courier", "parcel", "tracking", "logistics"],
+  "author": "",
+  "license": "ISC"
+}
+
