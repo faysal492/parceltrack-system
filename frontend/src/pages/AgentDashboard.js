@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../config/api';
 import { GoogleMap, LoadScript, Marker, DirectionsRenderer } from '@react-google-maps/api';
 
 const AgentDashboard = () => {
@@ -23,7 +23,7 @@ const AgentDashboard = () => {
 
   const fetchParcels = async () => {
     try {
-      const response = await axios.get('/parcels');
+      const response = await axiosInstance.get('/parcels');
       setParcels(response.data);
     } catch (error) {
       console.error('Error fetching parcels:', error);
@@ -34,7 +34,7 @@ const AgentDashboard = () => {
 
   const fetchRoute = async () => {
     try {
-      const response = await axios.get('/parcels/agent/route');
+      const response = await axiosInstance.get('/parcels/agent/route');
       if (response.data.routes && response.data.routes.length > 0) {
         setRoute(response.data);
       }
@@ -46,7 +46,7 @@ const AgentDashboard = () => {
   const updateStatus = async (parcelId, status, failureReason = '') => {
     setUpdating(true);
     try {
-      await axios.patch(`/parcels/${parcelId}/status`, {
+      await axiosInstance.patch(`/parcels/${parcelId}/status`, {
         status,
         failureReason,
       });

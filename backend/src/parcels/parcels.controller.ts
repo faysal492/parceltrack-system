@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   Query,
+  SetMetadata,
 } from '@nestjs/common';
 import { ParcelsService } from './parcels.service';
 import { RouteOptimizationService } from './route-optimization.service';
@@ -44,6 +45,7 @@ export class ParcelsController {
   }
 
   @Get('track/:trackingNumber')
+  @SetMetadata('isPublic', true)
   trackByNumber(@Param('trackingNumber') trackingNumber: string) {
     return this.parcelsService.findByTrackingNumber(trackingNumber);
   }
@@ -119,6 +121,7 @@ export class ParcelsController {
   }
 
   @Get(':id/route')
+  @SetMetadata('isPublic', true)
   async getRoute(@Param('id') id: string) {
     const parcel = await this.parcelsService.findOne(id);
     return this.routeOptimizationService.getRoute(

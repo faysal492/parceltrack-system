@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useLoadScript, GoogleMap, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import io from 'socket.io-client';
-import API_URL from '../config/api';
 
 const ParcelDetails = () => {
   const { id } = useParams();
@@ -18,21 +17,41 @@ const ParcelDetails = () => {
   const [failureReason, setFailureReason] = useState('');
   const [socket, setSocket] = useState(null);
 
-  const { isLoaded, loadError } = useLoadScript({
+  const { isLoaded } = useLoadScript({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '',
     libraries: ['places'],
   });
 
   useEffect(() => {
     fetchParcel();
-    setupSocket();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]); // Only re-run when id changes
+
+  // Setup socket when parcel is loaded
+  useEffect(() => {
+    if (!parcel || !parcel.id) return;
+
+    const token = localStorage.getItem('token');
+    const newSocket = io('http://localhost:3000', {
+      auth: { token },
+    });
+
+    newSocket.on('connect', () => {
+      newSocket.emit('subscribe_parcel', { parcelId: parcel.id });
+    });
+
+    newSocket.on('parcel_update', (updatedParcel) => {
+      setParcel(updatedParcel);
+    });
+
+    setSocket(newSocket);
 
     return () => {
-      if (socket) {
-        socket.disconnect();
+      if (newSocket) {
+        newSocket.disconnect();
       }
     };
-  }, [id]);
+  }, [parcel?.id]); // Only setup socket when parcel is loaded
 
   const setupSocket = () => {
     const token = localStorage.getItem('token');
@@ -53,7 +72,7 @@ const ParcelDetails = () => {
 
   const fetchParcel = async () => {
     try {
-      const response = await axios.get(`/parcels/${id}`);
+      const response = await axiosInstance.get(`/parcels/${id}`);
       setParcel(response.data);
       fetchRoute(id);
     } catch (error) {
@@ -65,7 +84,7 @@ const ParcelDetails = () => {
 
   const fetchRoute = async (parcelId) => {
     try {
-      const response = await axios.get(`/parcels/${parcelId}/route`);
+      const response = await axiosInstance.get(`/parcels/${parcelId}/route`);
       setRoute(response.data);
     } catch (error) {
       console.error('Error fetching route:', error);
@@ -77,7 +96,7 @@ const ParcelDetails = () => {
 
     setUpdating(true);
     try {
-      await axios.patch(`/parcels/${id}/status`, {
+      await axiosInstance.patch(`/parcels/${id}/status`, {
         status: newStatus,
         failureReason: newStatus === 'failed' ? failureReason : undefined,
       });

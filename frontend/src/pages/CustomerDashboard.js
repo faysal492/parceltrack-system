@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../config/api';
 
 const CustomerDashboard = () => {
   const [parcels, setParcels] = useState([]);
@@ -12,7 +12,7 @@ const CustomerDashboard = () => {
 
   const fetchParcels = async () => {
     try {
-      const response = await axios.get('/parcels');
+      const response = await axiosInstance.get('/parcels');
       setParcels(response.data);
     } catch (error) {
       console.error('Error fetching parcels:', error);

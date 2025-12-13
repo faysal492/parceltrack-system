@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { axiosInstance } from '../config/api';
 
 const AdminDashboard = () => {
   const [metrics, setMetrics] = useState(null);
@@ -17,10 +17,10 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     try {
       const [metricsRes, parcelsRes, usersRes, agentsRes] = await Promise.all([
-        axios.get('/analytics/dashboard'),
-        axios.get('/parcels'),
-        axios.get('/users'),
-        axios.get('/users/agents'),
+        axiosInstance.get('/analytics/dashboard'),
+        axiosInstance.get('/parcels'),
+        axiosInstance.get('/users'),
+        axiosInstance.get('/users/agents'),
       ]);
       setMetrics(metricsRes.data);
       setParcels(parcelsRes.data);
@@ -37,7 +37,7 @@ const AdminDashboard = () => {
     if (!selectedParcel || !selectedAgent) return;
 
     try {
-      await axios.patch(`/parcels/${selectedParcel}/assign`, {
+      await axiosInstance.patch(`/parcels/${selectedParcel}/assign`, {
         agentId: selectedAgent,
       });
       alert('Agent assigned successfully!');
@@ -51,7 +51,7 @@ const AdminDashboard = () => {
 
   const exportReport = async (format) => {
     try {
-      const response = await axios.get(`/analytics/export/${format}`, {
+      const response = await axiosInstance.get(`/analytics/export/${format}`, {
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));

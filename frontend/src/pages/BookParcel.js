@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../config/api';
 import { useLoadScript, Autocomplete } from '@react-google-maps/api';
 
 const libraries = ['places'];
@@ -81,7 +81,7 @@ const BookParcel = () => {
     };
 
     try {
-      const response = await axios.post('/parcels', submitData);
+      const response = await axiosInstance.post('/parcels', submitData);
       alert('Parcel booked successfully! Tracking Number: ' + response.data.trackingNumber);
       navigate('/customer');
     } catch (error) {
