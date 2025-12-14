@@ -68,16 +68,16 @@ output "database_connection_string" {
 output "complete_deployment_info" {
   description = "Complete deployment information"
   value = {
-    frontend_url           = "https://${vercel_project.parceltrack_frontend.name}.vercel.app"
-    vercel_project_id      = vercel_project.parceltrack_frontend.id
-    backend_api_url        = local.effective_backend_url
-    backend_deployment     = var.deploy_cloudflare_workers ? "Cloudflare Workers" : "Custom/Railway"
-    supabase_api_url       = var.supabase_api_url
-    supabase_project_id    = var.supabase_project_id
-    database_host          = var.supabase_db_host
-    cloudflare_enabled     = var.deploy_cloudflare_workers
-    custom_domain          = var.custom_domain != "" ? var.custom_domain : "Not configured"
-    environment            = var.environment
+    frontend_url        = "https://${vercel_project.parceltrack_frontend.name}.vercel.app"
+    vercel_project_id   = vercel_project.parceltrack_frontend.id
+    backend_api_url     = local.effective_backend_url
+    backend_deployment  = var.deploy_cloudflare_workers ? "Cloudflare Workers" : "Custom/Railway"
+    supabase_api_url    = var.supabase_api_url
+    supabase_project_id = var.supabase_project_id
+    database_host       = var.supabase_db_host
+    cloudflare_enabled  = var.deploy_cloudflare_workers
+    custom_domain       = var.custom_domain != "" ? var.custom_domain : "Not configured"
+    environment         = var.environment
   }
 }
 

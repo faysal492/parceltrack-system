@@ -13,19 +13,19 @@ resource "vercel_project" "parceltrack_frontend" {
 
   environment = [
     {
-      key       = "REACT_APP_GOOGLE_MAPS_API_KEY"
-      value     = var.google_maps_api_key
-      target    = ["production", "preview", "development"]
+      key    = "REACT_APP_GOOGLE_MAPS_API_KEY"
+      value  = var.google_maps_api_key
+      target = ["production", "preview", "development"]
     }
   ]
 }
 
 # Optional: Add custom domain
 resource "vercel_project_domain" "parceltrack_domain" {
-  count       = var.custom_domain != "" ? 1 : 0
-  project_id  = vercel_project.parceltrack_frontend.id
-  domain      = var.custom_domain
-  git_branch  = "main"
+  count      = var.custom_domain != "" ? 1 : 0
+  project_id = vercel_project.parceltrack_frontend.id
+  domain     = var.custom_domain
+  git_branch = "main"
 }
 
 # Deployment trigger
@@ -46,7 +46,7 @@ resource "cloudflare_worker_script" "parceltrack_api" {
   count      = var.deploy_cloudflare_workers ? 1 : 0
   account_id = var.cloudflare_account_id
   name       = var.cloudflare_worker_name
-  
+
   # Create a simple proxy worker that forwards requests to your backend
   content = <<-EOT
 addEventListener('fetch', event => {
@@ -81,12 +81,12 @@ resource "cloudflare_worker_route" "parceltrack_api_route" {
 locals {
   # If Cloudflare Workers is enabled, use workers URL
   cloudflare_worker_url = var.deploy_cloudflare_workers ? "${var.cloudflare_worker_name}.${var.cloudflare_account_id}.workers.dev" : ""
-  
+
   # Use custom domain if provided, otherwise use workers.dev subdomain
   effective_backend_url = var.deploy_cloudflare_workers ? (
     var.custom_domain != "" ? "https://api.${var.custom_domain}" : "https://${local.cloudflare_worker_url}"
   ) : var.backend_api_url
-  
+
   # Database connection string
   database_url = var.supabase_db_host != "" ? "postgresql://${var.supabase_db_user}:${var.supabase_db_password}@${var.supabase_db_host}:${var.supabase_db_port}/${var.supabase_db_name}" : ""
 }
