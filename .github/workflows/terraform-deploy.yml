@@ -34,6 +34,9 @@ jobs:
         with:
           terraform_version: 1.5.0
 
+      - name: Set deployment env vars
+        run: echo "VERCEL_API_TOKEN=${{ secrets.VERCEL_API_TOKEN }}" >> $GITHUB_ENV
+
       - name: Terraform Format Check
         working-directory: terraform
         run: terraform fmt -check -recursive
@@ -47,7 +50,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        if: github.ref == 'refs/heads/main' && secrets.VERCEL_API_TOKEN != ''
+        if: github.ref == 'refs/heads/main' && env.VERCEL_API_TOKEN != ''
         working-directory: terraform
         run: terraform plan -out=tfplan -no-color
         env:
@@ -63,7 +66,7 @@ jobs:
           TF_VAR_supabase_db_password: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
       - name: Terraform Plan Skipped
-        if: github.ref == 'refs/heads/main' && secrets.VERCEL_API_TOKEN == ''
+        if: github.ref == 'refs/heads/main' && env.VERCEL_API_TOKEN == ''
         run: |
           echo "⏭️  Skipping Terraform plan - GitHub secrets not configured."
           echo "Configure at: https://github.com/${{ github.repository }}/settings/secrets/actions"
@@ -84,7 +87,7 @@ jobs:
             });
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && secrets.VERCEL_API_TOKEN != ''
+        if: github.ref == 'refs/heads/main' && env.VERCEL_API_TOKEN != ''
         working-directory: terraform
         run: terraform apply tfplan -no-color
         env:
