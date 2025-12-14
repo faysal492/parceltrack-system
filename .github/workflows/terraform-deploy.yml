@@ -135,14 +135,18 @@ jobs:
       - name: Notify Deployment
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/github-script@v6
+        continue-on-error: true
         with:
           script: |
-            const fs = require('fs');
-            const summary = fs.readFileSync(process.env.GITHUB_STEP_SUMMARY, 'utf8');
-            github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: context.payload.deployment.id || 0,
-              state: 'success',
-              description: 'Deployed with Terraform'
-            });
+            // Only notify if deployment exists in payload (deployment events)
+            if (context.payload.deployment && context.payload.deployment.id) {
+              github.rest.repos.createDeploymentStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: context.payload.deployment.id,
+                state: 'success',
+                description: 'Deployed with Terraform'
+              });
+            } else {
+              console.log('No deployment in payload - skipping deployment status update');
+            }
