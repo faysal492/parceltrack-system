@@ -15,7 +15,6 @@ const ParcelDetails = () => {
   const [updating, setUpdating] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [failureReason, setFailureReason] = useState('');
-  const [socket, setSocket] = useState(null);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '',
@@ -63,8 +62,6 @@ const ParcelDetails = () => {
     newSocket.on('parcel_update', (updatedParcel) => {
       setParcel(updatedParcel);
     });
-
-    setSocket(newSocket);
 
     return () => {
       newSocket.disconnect();

@@ -46,8 +46,20 @@ const TrackParcel = () => {
       });
 
       setSocket(newSocket);
+
+      return newSocket;
     };
 
+    const newSocket = setupSocket();
+
+    return () => {
+      if (newSocket) {
+        newSocket.disconnect();
+      }
+    };
+  }, [trackingNumber, parcel?.id]);
+
+  useEffect(() => {
     const fetchParcel = async () => {
       try {
         const response = await axios.get(`/parcels/track/${trackingNumber}`);
@@ -64,14 +76,7 @@ const TrackParcel = () => {
     };
 
     fetchParcel();
-    setupSocket();
-
-    return () => {
-      if (socket) {
-        socket.disconnect();
-      }
-    };
-  }, [trackingNumber, socket, fetchRoute]);
+  }, [trackingNumber, fetchRoute]);
 
   const getStatusBadge = (status) => {
     const statusMap = {
