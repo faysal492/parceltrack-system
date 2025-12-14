@@ -1,0 +1,87 @@
+# Vercel API Token
+# Get from: https://vercel.com/account/tokens
+vercel_api_token = "YOUR_VERCEL_API_TOKEN_HERE"
+
+# Google Maps API Key
+# Get from: https://console.cloud.google.com/
+google_maps_api_key = "YOUR_GOOGLE_MAPS_API_KEY_HERE"
+
+# Backend API URL
+# Use one of:
+# - http://localhost:3000 (for local development)
+# - https://your-app.railway.app (if using Railway)
+# - https://your-api.example-workers.dev (if using Cloudflare Workers)
+# NOTE: If deploy_cloudflare_workers = true, this will be auto-set to: https://api.{custom_domain}
+# Only needed if NOT using Cloudflare Workers
+backend_api_url = "http://localhost:3000"
+
+# GitHub Repository
+github_repo = "faysal492/parceltrack-system"
+
+# Optional: GitHub Token (if you want Vercel to access private repos)
+# Get from: https://github.com/settings/tokens
+github_token = ""
+
+# Project Configuration
+environment = "production"
+project_name = "parceltrack"
+
+# Optional: Custom domain
+# Example: custom_domain = "parceltrack.com"
+custom_domain = ""
+
+# ============================================================
+# CLOUDFLARE WORKERS CONFIGURATION (Optional)
+# ============================================================
+# Set deploy_cloudflare_workers = true to deploy backend to Cloudflare Workers
+deploy_cloudflare_workers = false
+
+# Cloudflare API Token
+# Get from: https://dash.cloudflare.com/profile/api-tokens
+# Create a token with "Edit Cloudflare Workers" and "Zone.Workers Routes" permissions
+cloudflare_api_token = ""
+
+# Cloudflare Zone ID
+# Find at: https://dash.cloudflare.com/ (bottom right of Overview page)
+cloudflare_zone_id = ""
+
+# Cloudflare Account ID
+# Find at: https://dash.cloudflare.com/
+cloudflare_account_id = ""
+
+# Name for the Cloudflare Worker
+cloudflare_worker_name = "parceltrack-api"
+
+# ============================================================
+# SUPABASE DATABASE CONFIGURATION
+# ============================================================
+# Get all values from: https://supabase.com/dashboard
+
+# Supabase Project API URL
+# Found in: Settings > API > Project URL
+supabase_api_url = "https://your-project.supabase.co"
+
+# Supabase API Key (anon or service role key)
+# Found in: Settings > API > Project API keys
+supabase_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+# Supabase Database Password
+# Set during project creation or reset in Settings > Database
+supabase_db_password = "YOUR_DB_PASSWORD_HERE"
+
+# Supabase Database Host
+# Format: your-project.db.supabase.co
+supabase_db_host = "your-project.db.supabase.co"
+
+# Supabase Database Port (default 5432)
+supabase_db_port = 5432
+
+# Supabase Database Name (default: postgres)
+supabase_db_name = "postgres"
+
+# Supabase Database User (default: postgres)
+supabase_db_user = "postgres"
+
+# Supabase Project ID
+# Found in: Settings > General > Project ID
+supabase_project_id = "your-project-id"
