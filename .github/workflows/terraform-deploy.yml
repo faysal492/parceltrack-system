@@ -64,7 +64,9 @@ jobs:
 
       - name: Terraform Plan Skipped
         if: github.ref == 'refs/heads/main' && secrets.VERCEL_API_TOKEN == ''
-        run: echo "⏭️  Skipping Terraform plan - GitHub secrets not configured. Configure at: https://github.com/${{ github.repository }}/settings/secrets/actions"
+        run: |
+          echo "⏭️  Skipping Terraform plan - GitHub secrets not configured."
+          echo "Configure at: https://github.com/${{ github.repository }}/settings/secrets/actions"
 
       - name: Comment PR with Plan
         if: github.event_name == 'pull_request'
