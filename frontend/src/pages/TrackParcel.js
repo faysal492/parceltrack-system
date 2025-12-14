@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useLoadScript, GoogleMap, Marker, DirectionsRenderer } from '@react-google-maps/api';
@@ -13,13 +13,56 @@ const TrackParcel = () => {
   const [socket, setSocket] = useState(null);
 
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
-  const { isLoaded, loadError } = useLoadScript({
+  const { isLoaded } = useLoadScript({
     googleMapsApiKey: apiKey,
     libraries: ['places'],
     id: 'google-map-script',
   });
 
+  const fetchRoute = useCallback(async (parcelId) => {
+    try {
+      const response = await axios.get(`/parcels/${parcelId}/route`);
+      setRoute(response.data);
+    } catch (error) {
+      console.error('Error fetching route:', error);
+    }
+  }, []);
+
   useEffect(() => {
+    const setupSocket = () => {
+      const token = localStorage.getItem('token');
+      const socketUrl = API_URL.replace('/api', ''); // Remove /api if present
+      const newSocket = io(socketUrl, {
+        auth: { token },
+      });
+
+      newSocket.on('connect', () => {
+        console.log('Connected to server');
+        newSocket.emit('subscribe_parcel', { parcelId: parcel?.id });
+      });
+
+      newSocket.on('parcel_update', (updatedParcel) => {
+        setParcel(updatedParcel);
+      });
+
+      setSocket(newSocket);
+    };
+
+    const fetchParcel = async () => {
+      try {
+        const response = await axios.get(`/parcels/track/${trackingNumber}`);
+        setParcel(response.data);
+        
+        if (response.data.id) {
+          fetchRoute(response.data.id);
+        }
+      } catch (error) {
+        console.error('Error fetching parcel:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchParcel();
     setupSocket();
 
@@ -28,50 +71,7 @@ const TrackParcel = () => {
         socket.disconnect();
       }
     };
-  }, [trackingNumber, socket]);
-
-  const setupSocket = () => {
-    const token = localStorage.getItem('token');
-    const socketUrl = API_URL.replace('/api', ''); // Remove /api if present
-    const newSocket = io(socketUrl, {
-      auth: { token },
-    });
-
-    newSocket.on('connect', () => {
-      console.log('Connected to server');
-      newSocket.emit('subscribe_parcel', { parcelId: parcel?.id });
-    });
-
-    newSocket.on('parcel_update', (updatedParcel) => {
-      setParcel(updatedParcel);
-    });
-
-    setSocket(newSocket);
-  };
-
-  const fetchParcel = async () => {
-    try {
-      const response = await axios.get(`/parcels/track/${trackingNumber}`);
-      setParcel(response.data);
-      
-      if (response.data.id) {
-        fetchRoute(response.data.id);
-      }
-    } catch (error) {
-      console.error('Error fetching parcel:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchRoute = async (parcelId) => {
-    try {
-      const response = await axios.get(`/parcels/${parcelId}/route`);
-      setRoute(response.data);
-    } catch (error) {
-      console.error('Error fetching route:', error);
-    }
-  };
+  }, [trackingNumber, socket, fetchRoute]);
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -89,29 +89,6 @@ const TrackParcel = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="card">
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              <h3 className="font-semibold mb-2">Google Maps Error</h3>
-              <p>Failed to load Google Maps. Please check:</p>
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Google Maps API key is set in .env file</li>
-                <li>API key has Maps JavaScript API enabled</li>
-                <li>API key restrictions allow your domain</li>
-              </ul>
-              {!apiKey && (
-                <p className="mt-2 font-semibold">⚠️ API key is missing! Add REACT_APP_GOOGLE_MAPS_API_KEY to your .env file</p>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
     );
   }
