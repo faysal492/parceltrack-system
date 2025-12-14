@@ -38,6 +38,10 @@ jobs:
         working-directory: terraform
         run: terraform fmt -check -recursive
 
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
       - name: Terraform Validate
         working-directory: terraform
         run: terraform validate
@@ -49,6 +53,13 @@ jobs:
           TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
           TF_VAR_google_maps_api_key: ${{ secrets.GOOGLE_MAPS_API_KEY }}
           TF_VAR_backend_api_url: ${{ secrets.BACKEND_API_URL }}
+          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_cloudflare_account_id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          TF_VAR_supabase_api_url: ${{ secrets.SUPABASE_API_URL }}
+          TF_VAR_supabase_api_key: ${{ secrets.SUPABASE_API_KEY }}
+          TF_VAR_supabase_db_host: ${{ secrets.SUPABASE_DB_HOST }}
+          TF_VAR_supabase_db_password: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
       - name: Comment PR with Plan
         if: github.event_name == 'pull_request'
@@ -73,6 +84,13 @@ jobs:
           TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
           TF_VAR_google_maps_api_key: ${{ secrets.GOOGLE_MAPS_API_KEY }}
           TF_VAR_backend_api_url: ${{ secrets.BACKEND_API_URL }}
+          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_cloudflare_account_id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          TF_VAR_supabase_api_url: ${{ secrets.SUPABASE_API_URL }}
+          TF_VAR_supabase_api_key: ${{ secrets.SUPABASE_API_KEY }}
+          TF_VAR_supabase_db_host: ${{ secrets.SUPABASE_DB_HOST }}
+          TF_VAR_supabase_db_password: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
       - name: Get Deployment URL
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
