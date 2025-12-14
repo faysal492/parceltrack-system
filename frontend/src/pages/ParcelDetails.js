@@ -22,54 +22,54 @@ const ParcelDetails = () => {
     libraries: ['places'],
   });
 
-  const fetchRoute = async (parcelId) => {
+  const fetchRoute = useCallback(async (parcelId) => {
     try {
       const response = await axios.get(`/parcels/${parcelId}/route`);
       setRoute(response.data);
     } catch (error) {
       console.error('Error fetching route:', error);
     }
-  };
+  }, []);
+
+  const fetchParcel = useCallback(async () => {
+    try {
+      const response = await axios.get(`/parcels/${id}`);
+      setParcel(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching parcel:', error);
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    const setupSocket = () => {
-      const token = localStorage.getItem('token');
-      const newSocket = io('http://localhost:3000', {
-        auth: { token },
-      });
-
-      newSocket.on('connect', () => {
-        newSocket.emit('subscribe_parcel', { parcelId: id });
-      });
-
-      newSocket.on('parcel_update', (updatedParcel) => {
-        setParcel(updatedParcel);
-      });
-
-      setSocket(newSocket);
-    };
-
-    const fetchParcel = async () => {
-      try {
-        const response = await axios.get(`/parcels/${id}`);
-        setParcel(response.data);
-        fetchRoute(id);
-      } catch (error) {
-        console.error('Error fetching parcel:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchParcel();
-    setupSocket();
+    
+    if (parcel?.id) {
+      fetchRoute(parcel.id);
+    }
+  }, [fetchParcel, fetchRoute, parcel?.id]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const newSocket = io('http://localhost:3000', {
+      auth: { token },
+    });
+
+    newSocket.on('connect', () => {
+      newSocket.emit('subscribe_parcel', { parcelId: id });
+    });
+
+    newSocket.on('parcel_update', (updatedParcel) => {
+      setParcel(updatedParcel);
+    });
+
+    setSocket(newSocket);
 
     return () => {
-      if (socket) {
-        socket.disconnect();
-      }
+      newSocket.disconnect();
     };
-  }, [id, socket]);
+  }, [id]);
 
   const handleStatusUpdate = async () => {
     if (!newStatus) return;
