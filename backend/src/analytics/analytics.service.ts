@@ -18,41 +18,80 @@ export class AnalyticsService {
   ) {}
 
   async getDashboardMetrics(startDate?: Date, endDate?: Date) {
-    const queryBuilder = this.parcelsRepository.createQueryBuilder('parcel');
-
+    // Total Parcels
+    let query = this.parcelsRepository.createQueryBuilder('parcel');
     if (startDate && endDate) {
-      queryBuilder.where('parcel.createdAt BETWEEN :startDate AND :endDate', {
+      query.where('parcel.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
       });
     }
+    const totalParcels = await query.getCount();
 
-    const totalParcels = await queryBuilder.getCount();
-
-    const dailyBookings = await queryBuilder
+    // Daily Bookings
+    query = this.parcelsRepository.createQueryBuilder('parcel');
+    if (startDate && endDate) {
+      query.where('parcel.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    }
+    const dailyBookings = await query
       .select("DATE(parcel.createdAt)", "date")
       .addSelect("COUNT(*)", "count")
       .groupBy("DATE(parcel.createdAt)")
-      .orderBy("date", "DESC")
+      .orderBy("DATE(parcel.createdAt)", "DESC")
       .limit(30)
       .getRawMany();
 
-    const failedDeliveries = await queryBuilder
-      .where('parcel.status = :status', { status: ParcelStatus.FAILED })
+    // Failed Deliveries
+    query = this.parcelsRepository.createQueryBuilder('parcel');
+    if (startDate && endDate) {
+      query.where('parcel.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    }
+    const failedDeliveries = await query
+      .andWhere('parcel.status = :status', { status: ParcelStatus.FAILED })
       .getCount();
 
-    const codAmount = await queryBuilder
+    // COD Amount
+    query = this.parcelsRepository.createQueryBuilder('parcel');
+    if (startDate && endDate) {
+      query.where('parcel.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    }
+    const codAmount = await query
       .select("SUM(parcel.codAmount)", "total")
-      .where('parcel.paymentType = :type', { type: PaymentType.COD })
+      .andWhere('parcel.paymentType = :type', { type: PaymentType.COD })
       .getRawOne();
 
-    const statusBreakdown = await queryBuilder
+    // Status Breakdown
+    query = this.parcelsRepository.createQueryBuilder('parcel');
+    if (startDate && endDate) {
+      query.where('parcel.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    }
+    const statusBreakdown = await query
       .select("parcel.status", "status")
       .addSelect("COUNT(*)", "count")
       .groupBy("parcel.status")
       .getRawMany();
 
-    const totalRevenue = await queryBuilder
+    // Total Revenue
+    query = this.parcelsRepository.createQueryBuilder('parcel');
+    if (startDate && endDate) {
+      query.where('parcel.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    }
+    const totalRevenue = await query
       .select("SUM(parcel.shippingCost)", "total")
       .getRawOne();
 

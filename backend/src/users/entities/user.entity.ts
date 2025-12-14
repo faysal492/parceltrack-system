@@ -53,6 +53,9 @@ export class User {
   @Column({ type: 'decimal', precision: 11, scale: 8, nullable: true })
   currentLongitude: number;
 
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
+
   @OneToMany(() => Parcel, (parcel) => parcel.customer)
   parcels: Parcel[];
 

@@ -11,12 +11,28 @@ const Navbar = () => {
     navigate('/login');
   };
 
+  const getHomePath = () => {
+    if (!user) return '/login';
+    if (user.role === 'admin') return '/admin';
+    if (user.role === 'delivery_agent') return '/agent';
+    return '/customer';
+  };
+
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    navigate(getHomePath());
+  };
+
   return (
     <nav className="bg-white shadow-lg border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
+            <Link 
+              to={getHomePath()} 
+              onClick={handleLogoClick}
+              className="flex items-center space-x-2 cursor-pointer"
+            >
               <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">P</span>
               </div>

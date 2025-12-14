@@ -151,42 +151,49 @@ const AdminDashboard = () => {
           <div className="card">
             <h2 className="text-xl font-bold text-gray-900 mb-4">All Parcels</h2>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tracking</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Agent</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Tracking</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Customer</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Agent</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Status</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {parcels.slice(0, 5).map((parcel) => (
                     <tr key={parcel.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                      <td className="px-2 py-3 text-xs font-medium text-gray-900 whitespace-nowrap">
                         {parcel.trackingNumber}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
+                      <td className="px-2 py-3 text-xs text-gray-500 whitespace-nowrap">
                         {parcel.customer?.firstName} {parcel.customer?.lastName}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
+                      <td className="px-2 py-3 text-xs text-gray-500 whitespace-nowrap">
                         {parcel.deliveryAgent
                           ? `${parcel.deliveryAgent.firstName} ${parcel.deliveryAgent.lastName}`
                           : <span className="text-gray-400">Not Assigned</span>}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3 whitespace-nowrap">
                         <span className={`badge badge-${parcel.status}`}>
                           {parcel.status.replace('_', ' ').toUpperCase()}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        {!parcel.deliveryAgent && (
+                      <td className="px-2 py-3 whitespace-nowrap">
+                        {!parcel.deliveryAgent ? (
                           <button
                             onClick={() => setSelectedParcel(parcel.id)}
-                            className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                            className="text-primary-600 hover:text-primary-800 text-xs font-medium"
                           >
                             Assign
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setSelectedParcel(parcel.id)}
+                            className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                          >
+                            Reassign
                           </button>
                         )}
                       </td>
@@ -200,22 +207,22 @@ const AdminDashboard = () => {
           <div className="card">
             <h2 className="text-xl font-bold text-gray-900 mb-4">All Users</h2>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Name</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Email</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Role</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {users.slice(0, 5).map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                      <td className="px-2 py-3 text-xs font-medium text-gray-900 whitespace-nowrap">
                         {user.firstName} {user.lastName}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{user.email}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3 text-xs text-gray-500 whitespace-nowrap">{user.email}</td>
+                      <td className="px-2 py-3 whitespace-nowrap">
                         <span className={`badge badge-${user.role}`}>
                           {user.role.replace('_', ' ').toUpperCase()}
                         </span>

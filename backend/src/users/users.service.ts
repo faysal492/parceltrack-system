@@ -16,6 +16,7 @@ export class UsersService {
     const user = this.usersRepository.create({
       ...userData,
       password: hashedPassword,
+      isActive: userData.isActive !== undefined ? userData.isActive : true,
     });
     return this.usersRepository.save(user);
   }

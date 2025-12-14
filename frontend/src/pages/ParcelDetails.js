@@ -1,95 +1,265 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { axiosInstance } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
-import { useLoadScript, GoogleMap, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import io from 'socket.io-client';
+import API_URL from '../config/api';
 
 const ParcelDetails = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [parcel, setParcel] = useState(null);
-  const [route, setRoute] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [failureReason, setFailureReason] = useState('');
   const [socket, setSocket] = useState(null);
+  const [mapError, setMapError] = useState(false);
+  const [mapsLoaded, setMapsLoaded] = useState(false);
 
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '',
-    libraries: ['places'],
-  });
+  const fetchParcel = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get(`/parcels/${id}`);
+      setParcel(response.data);
+    } catch (error) {
+      console.error('Error fetching parcel:', error);
+      setParcel(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
     fetchParcel();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]); // Only re-run when id changes
+  }, [fetchParcel]);
 
-  // Setup socket when parcel is loaded
+  // Load Google Maps API
+  useEffect(() => {
+    const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+    
+    if (!apiKey) {
+      console.warn('Google Maps API key not found');
+      setMapError(true);
+      return;
+    }
+
+    // Check if Google Maps is already loaded
+    if (window.google?.maps) {
+      setMapsLoaded(true);
+      return;
+    }
+
+    // Load the Google Maps script
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+
+    script.onload = () => {
+      setMapsLoaded(true);
+      setMapError(false);
+    };
+
+    script.onerror = () => {
+      console.error('Failed to load Google Maps API');
+      setMapError(true);
+      setMapsLoaded(false);
+    };
+
+    document.head.appendChild(script);
+
+    return () => {
+      if (script && document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, []);
+
+  // Setup socket when parcel is loaded (optional - only if user is logged in)
   useEffect(() => {
     if (!parcel || !parcel.id) return;
-
+    
     const token = localStorage.getItem('token');
-    const newSocket = io('http://localhost:3000', {
-      auth: { token },
-    });
+    if (!token) {
+      return;
+    }
+    
+    let newSocket;
+    try {
+      const socketUrl = API_URL.replace('/api', '').replace(/\/$/, '');
+      newSocket = io(socketUrl, {
+        auth: { token },
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5,
+      });
 
-    newSocket.on('connect', () => {
-      newSocket.emit('subscribe_parcel', { parcelId: parcel.id });
-    });
+      newSocket.on('connect', () => {
+        console.log('Socket connected');
+        newSocket.emit('subscribe_parcel', { parcelId: parcel.id });
+      });
 
-    newSocket.on('parcel_update', (updatedParcel) => {
-      setParcel(updatedParcel);
-    });
+      newSocket.on('connect_error', (err) => {
+        console.warn('Socket connection error:', err);
+      });
 
-    setSocket(newSocket);
+      newSocket.on('parcel_update', (updatedParcel) => {
+        setParcel(updatedParcel);
+      });
+
+      setSocket(newSocket);
+    } catch (err) {
+      console.error('Socket setup error:', err);
+    }
 
     return () => {
       if (newSocket) {
         newSocket.disconnect();
       }
     };
-  }, [parcel?.id]); // Only setup socket when parcel is loaded
+  }, [parcel?.id]);
 
-  const setupSocket = () => {
-    const token = localStorage.getItem('token');
-    const newSocket = io('http://localhost:3000', {
-      auth: { token },
-    });
-
-    newSocket.on('connect', () => {
-      newSocket.emit('subscribe_parcel', { parcelId: id });
-    });
-
-    newSocket.on('parcel_update', (updatedParcel) => {
-      setParcel(updatedParcel);
-    });
-
-    setSocket(newSocket);
-  };
-
-  const fetchParcel = async () => {
-    try {
-      const response = await axiosInstance.get(`/parcels/${id}`);
-      setParcel(response.data);
-      fetchRoute(id);
-    } catch (error) {
-      console.error('Error fetching parcel:', error);
-    } finally {
-      setLoading(false);
+  // Initialize and render Google Map
+  const renderMap = useCallback(() => {
+    if (!mapsLoaded || !parcel?.pickupLatitude || !parcel?.pickupLongitude) {
+      return null;
     }
-  };
 
-  const fetchRoute = async (parcelId) => {
+    const mapContainer = document.getElementById('parcel-details-map');
+    if (!mapContainer) return null;
+
     try {
-      const response = await axiosInstance.get(`/parcels/${parcelId}/route`);
-      setRoute(response.data);
-    } catch (error) {
-      console.error('Error fetching route:', error);
+      const pickupLat = parseFloat(parcel.pickupLatitude);
+      const pickupLng = parseFloat(parcel.pickupLongitude);
+      const deliveryLat = parcel.deliveryLatitude ? parseFloat(parcel.deliveryLatitude) : null;
+      const deliveryLng = parcel.deliveryLongitude ? parseFloat(parcel.deliveryLongitude) : null;
+
+      const center = { lat: pickupLat, lng: pickupLng };
+
+      const map = new window.google.maps.Map(mapContainer, {
+        zoom: 12,
+        center: center,
+        mapTypeControl: true,
+        fullscreenControl: true,
+        streetViewControl: false,
+      });
+
+      // Pickup Info Window
+      const pickupInfoWindow = new window.google.maps.InfoWindow({
+        content: `
+          <div style="padding: 12px; font-family: Arial, sans-serif;">
+            <h3 style="margin: 0 0 8px 0; color: #1F2937; font-size: 16px; font-weight: bold;">📍 Pickup Location</h3>
+            <p style="margin: 4px 0; color: #374151; font-size: 14px;"><strong>Address:</strong></p>
+            <p style="margin: 4px 0; color: #4B5563; font-size: 13px;">${parcel.pickupAddress || 'N/A'}</p>
+            <p style="margin: 8px 0 0 0; color: #6B7280; font-size: 12px;">
+              <strong>Coordinates:</strong> ${pickupLat.toFixed(4)}, ${pickupLng.toFixed(4)}
+            </p>
+          </div>
+        `,
+      });
+
+      // Add pickup marker
+      const pickupMarker = new window.google.maps.Marker({
+        position: { lat: pickupLat, lng: pickupLng },
+        map: map,
+        title: 'Pickup Location',
+        icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+      });
+
+      pickupMarker.addListener('click', () => {
+        pickupInfoWindow.open(map, pickupMarker);
+      });
+
+      // Add delivery marker if coordinates exist
+      if (deliveryLat && deliveryLng) {
+        const deliveryInfoWindow = new window.google.maps.InfoWindow({
+          content: `
+            <div style="padding: 12px; font-family: Arial, sans-serif;">
+              <h3 style="margin: 0 0 8px 0; color: #1F2937; font-size: 16px; font-weight: bold;">🏠 Delivery Location</h3>
+              <p style="margin: 4px 0; color: #374151; font-size: 14px;"><strong>Address:</strong></p>
+              <p style="margin: 4px 0; color: #4B5563; font-size: 13px;">${parcel.deliveryAddress || 'N/A'}</p>
+              <p style="margin: 8px 0 0 0; color: #6B7280; font-size: 12px;">
+                <strong>Coordinates:</strong> ${deliveryLat.toFixed(4)}, ${deliveryLng.toFixed(4)}
+              </p>
+            </div>
+          `,
+        });
+
+        const deliveryMarker = new window.google.maps.Marker({
+          position: { lat: deliveryLat, lng: deliveryLng },
+          map: map,
+          title: 'Delivery Location',
+          icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+        });
+
+        deliveryMarker.addListener('click', () => {
+          deliveryInfoWindow.open(map, deliveryMarker);
+        });
+
+        // Add polyline between pickup and delivery
+        new window.google.maps.Polyline({
+          path: [
+            { lat: pickupLat, lng: pickupLng },
+            { lat: deliveryLat, lng: deliveryLng },
+          ],
+          geodesic: true,
+          strokeColor: '#4F46E5',
+          strokeOpacity: 0.7,
+          strokeWeight: 3,
+          map: map,
+        });
+
+        // Adjust map bounds to show both
+        const bounds = new window.google.maps.LatLngBounds();
+        bounds.extend({ lat: pickupLat, lng: pickupLng });
+        bounds.extend({ lat: deliveryLat, lng: deliveryLng });
+        map.fitBounds(bounds);
+      }
+
+      // Add current location marker if available
+      if (parcel.currentLatitude && parcel.currentLongitude) {
+        const currentLat = parseFloat(parcel.currentLatitude);
+        const currentLng = parseFloat(parcel.currentLongitude);
+
+        const currentMarker = new window.google.maps.Marker({
+          position: { lat: currentLat, lng: currentLng },
+          map: map,
+          title: 'Current Location',
+          icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+        });
+
+        const currentInfoWindow = new window.google.maps.InfoWindow({
+          content: `
+            <div style="padding: 12px; font-family: Arial, sans-serif;">
+              <h3 style="margin: 0 0 8px 0; color: #1F2937; font-size: 16px; font-weight: bold;">📌 Current Location</h3>
+              <p style="margin: 4px 0; color: #6B7280; font-size: 12px;">
+                <strong>Coordinates:</strong> ${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}
+              </p>
+            </div>
+          `,
+        });
+
+        currentMarker.addListener('click', () => {
+          currentInfoWindow.open(map, currentMarker);
+        });
+      }
+    } catch (err) {
+      console.error('Error rendering map:', err);
+      setMapError(true);
     }
-  };
+  }, [mapsLoaded, parcel]);
+
+  // Render map when ready
+  useEffect(() => {
+    if (mapsLoaded && parcel?.pickupLatitude && parcel?.pickupLongitude) {
+      setTimeout(() => {
+        renderMap();
+      }, 100);
+    }
+  }, [mapsLoaded, parcel, renderMap]);
 
   const handleStatusUpdate = async () => {
     if (!newStatus) return;
@@ -113,8 +283,11 @@ const ParcelDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading parcel details...</p>
+        </div>
       </div>
     );
   }
@@ -125,22 +298,17 @@ const ParcelDetails = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="card text-center py-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Parcel Not Found</h2>
+            <button
+              onClick={() => navigate(-1)}
+              className="btn btn-secondary mt-4"
+            >
+              Go Back
+            </button>
           </div>
         </div>
       </div>
     );
   }
-
-  const mapContainerStyle = {
-    width: '100%',
-    height: '400px',
-    borderRadius: '0.75rem',
-  };
-
-  const center = {
-    lat: parseFloat(parcel.pickupLatitude),
-    lng: parseFloat(parcel.pickupLongitude),
-  };
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -163,50 +331,56 @@ const ParcelDetails = () => {
               <h2 className="text-2xl font-bold text-gray-900">Parcel Details</h2>
               <p className="text-primary-600 font-mono text-lg mt-1">{parcel.trackingNumber}</p>
             </div>
-            <span className={`badge ${getStatusBadge(parcel.status)} text-sm`}>
-              {parcel.status.replace('_', ' ').toUpperCase()}
-            </span>
+            {parcel.status && (
+              <span className={`badge ${getStatusBadge(parcel.status)} text-sm`}>
+                {parcel.status.replace('_', ' ').toUpperCase()}
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-gray-500">Customer</p>
-                <p className="text-gray-900">{parcel.customer?.firstName} {parcel.customer?.lastName}</p>
+                <p className="text-gray-900">
+                  {parcel.customer?.firstName || ''} {parcel.customer?.lastName || ''}
+                </p>
               </div>
               {parcel.deliveryAgent && (
                 <div>
                   <p className="text-sm font-medium text-gray-500">Delivery Agent</p>
-                  <p className="text-gray-900">{parcel.deliveryAgent.firstName} {parcel.deliveryAgent.lastName}</p>
+                  <p className="text-gray-900">
+                    {parcel.deliveryAgent.firstName} {parcel.deliveryAgent.lastName}
+                  </p>
                 </div>
               )}
               <div>
                 <p className="text-sm font-medium text-gray-500">Pickup Address</p>
-                <p className="text-gray-900">{parcel.pickupAddress}</p>
+                <p className="text-gray-900">{parcel.pickupAddress || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Delivery Address</p>
-                <p className="text-gray-900">{parcel.deliveryAddress}</p>
+                <p className="text-gray-900">{parcel.deliveryAddress || 'N/A'}</p>
               </div>
             </div>
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-gray-500">Size</p>
-                <p className="text-gray-900 capitalize">{parcel.size}</p>
+                <p className="text-gray-900 capitalize">{parcel.size || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Payment Type</p>
-                <p className="text-gray-900">{parcel.paymentType.toUpperCase()}</p>
+                <p className="text-gray-900">{parcel.paymentType?.toUpperCase() || 'N/A'}</p>
               </div>
               {parcel.paymentType === 'cod' && (
                 <div>
                   <p className="text-sm font-medium text-gray-500">COD Amount</p>
-                  <p className="text-gray-900">${parcel.codAmount}</p>
+                  <p className="text-gray-900">${parcel.codAmount || '0'}</p>
                 </div>
               )}
               <div>
                 <p className="text-sm font-medium text-gray-500">Shipping Cost</p>
-                <p className="text-gray-900">${parcel.shippingCost}</p>
+                <p className="text-gray-900">${parcel.shippingCost || '0'}</p>
               </div>
               {parcel.notes && (
                 <div>
@@ -224,40 +398,34 @@ const ParcelDetails = () => {
             </div>
           )}
 
-          {isLoaded && (
-            <div className="mb-6">
-              <GoogleMap
-                mapContainerStyle={mapContainerStyle}
-                center={center}
-                zoom={12}
-              >
-                <Marker
-                  position={{
-                    lat: parseFloat(parcel.pickupLatitude),
-                    lng: parseFloat(parcel.pickupLongitude),
-                  }}
-                  label="Pickup"
-                />
-                <Marker
-                  position={{
-                    lat: parseFloat(parcel.deliveryLatitude),
-                    lng: parseFloat(parcel.deliveryLongitude),
-                  }}
-                  label="Delivery"
-                />
-                {parcel.currentLatitude && parcel.currentLongitude && (
-                  <Marker
-                    position={{
-                      lat: parseFloat(parcel.currentLatitude),
-                      lng: parseFloat(parcel.currentLongitude),
-                    }}
-                    label="Current"
-                  />
+          {/* Map Section */}
+          {mapError ? (
+            <div className="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg">
+              <h4 className="font-semibold mb-2">⚠️ Map Not Available</h4>
+              <p className="text-sm mb-2">Google Maps could not be loaded. Showing coordinates instead:</p>
+              <div className="text-sm space-y-1 mt-2">
+                {parcel.pickupLatitude && parcel.pickupLongitude && (
+                  <p>📍 Pickup: ({parcel.pickupLatitude}, {parcel.pickupLongitude})</p>
                 )}
-                {route && route.routes && route.routes[0] && (
-                  <DirectionsRenderer directions={route} />
+                {parcel.deliveryLatitude && parcel.deliveryLongitude && (
+                  <p>📍 Delivery: ({parcel.deliveryLatitude}, {parcel.deliveryLongitude})</p>
                 )}
-              </GoogleMap>
+              </div>
+            </div>
+          ) : mapsLoaded && parcel.pickupLatitude && parcel.pickupLongitude ? (
+            <div className="mb-6 rounded-lg overflow-hidden border border-gray-200">
+              <div
+                id="parcel-details-map"
+                style={{
+                  width: '100%',
+                  height: '400px',
+                  borderRadius: '0.5rem',
+                }}
+              ></div>
+            </div>
+          ) : (
+            <div className="mb-6 bg-gray-100 border border-gray-300 text-gray-700 px-4 py-3 rounded-lg">
+              <p className="text-sm">Loading map...</p>
             </div>
           )}
 

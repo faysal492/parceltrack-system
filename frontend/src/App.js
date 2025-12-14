@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import PrivateRoute from './components/PrivateRoute';
 import Navbar from './components/Navbar';
@@ -8,11 +8,39 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import CustomerDashboard from './pages/CustomerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import UsersManagement from './pages/UsersManagement';
 import AgentDashboard from './pages/AgentDashboard';
 import BookParcel from './pages/BookParcel';
 import TrackParcel from './pages/TrackParcel';
 import ParcelDetails from './pages/ParcelDetails';
 import './App.css';
+
+// Smart redirect component that redirects based on user role
+const HomeRedirect = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+
+  if (user.role === 'delivery_agent') {
+    return <Navigate to="/agent" replace />;
+  }
+
+  return <Navigate to="/customer" replace />;
+};
 
 function App() {
   return (
@@ -37,6 +65,14 @@ function App() {
               element={
                 <PrivateRoute requiredRole="admin">
                   <AdminDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <UsersManagement />
                 </PrivateRoute>
               }
             />
@@ -68,7 +104,7 @@ function App() {
                 </PrivateRoute>
               }
             />
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<HomeRedirect />} />
           </Routes>
         </div>
       </Router>
