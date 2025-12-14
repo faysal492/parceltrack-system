@@ -47,6 +47,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
+        if: github.ref == 'refs/heads/main' && secrets.VERCEL_API_TOKEN != ''
         working-directory: terraform
         run: terraform plan -out=tfplan -no-color
         env:
@@ -60,6 +61,10 @@ jobs:
           TF_VAR_supabase_api_key: ${{ secrets.SUPABASE_API_KEY }}
           TF_VAR_supabase_db_host: ${{ secrets.SUPABASE_DB_HOST }}
           TF_VAR_supabase_db_password: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+      - name: Terraform Plan Skipped
+        if: github.ref == 'refs/heads/main' && secrets.VERCEL_API_TOKEN == ''
+        run: echo "⏭️  Skipping Terraform plan - GitHub secrets not configured. Configure at: https://github.com/${{ github.repository }}/settings/secrets/actions"
 
       - name: Comment PR with Plan
         if: github.event_name == 'pull_request'
@@ -77,9 +82,9 @@ jobs:
             });
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && secrets.VERCEL_API_TOKEN != ''
         working-directory: terraform
-        run: terraform apply -no-color tfplan
+        run: terraform apply tfplan -no-color
         env:
           TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
           TF_VAR_google_maps_api_key: ${{ secrets.GOOGLE_MAPS_API_KEY }}
