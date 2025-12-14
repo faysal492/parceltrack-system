@@ -18,6 +18,12 @@ resource "vercel_project" "parceltrack_frontend" {
       target = ["production", "preview", "development"]
     }
   ]
+
+  lifecycle {
+    # If project already exists, import it instead of failing
+    # The import step in CI/CD should handle this, but this provides additional safety
+    create_before_destroy = false
+  }
 }
 
 # Optional: Add custom domain

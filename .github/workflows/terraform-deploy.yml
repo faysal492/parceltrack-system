@@ -54,9 +54,41 @@ jobs:
         working-directory: terraform
         run: |
           echo "Attempting to import existing Vercel project..."
-          terraform import vercel_project.parceltrack_frontend prj_cn8sVCze03jFSGXG1y9ea5Vmwq0E || echo "Project already imported or doesn't exist - Terraform will handle creation/update"
+          # Check if project is already in state
+          if terraform state show vercel_project.parceltrack_frontend > /dev/null 2>&1; then
+            echo "✓ Project already in Terraform state, skipping import."
+          else
+            echo "Finding project by name: parceltrack-frontend"
+            # Try to find project ID by name using Vercel API - list all projects
+            PROJECT_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_API_TOKEN }}" \
+              "https://api.vercel.com/v9/projects" \
+              | jq -r '.projects[] | select(.name == "parceltrack-frontend") | .id' 2>/dev/null | head -1 || echo "")
+            
+            if [ -n "$PROJECT_ID" ] && [ "$PROJECT_ID" != "null" ] && [ "$PROJECT_ID" != "" ]; then
+              echo "Found project ID: $PROJECT_ID"
+              echo "Importing project into Terraform state..."
+              if terraform import vercel_project.parceltrack_frontend "$PROJECT_ID" 2>&1; then
+                echo "✓ Successfully imported project"
+              else
+                echo "⚠ Import failed, but continuing..."
+              fi
+            else
+              echo "⚠ Project 'parceltrack-frontend' not found via API."
+              echo "Trying known project IDs as fallback..."
+              # Try known project IDs
+              for FALLBACK_ID in "prj_Er9BJboNx9KdMCMfPSts7PUJJvEH" "prj_cn8sVCze03jFSGXG1y9ea5Vmwq0E"; do
+                echo "Trying project ID: $FALLBACK_ID"
+                if terraform import vercel_project.parceltrack_frontend "$FALLBACK_ID" 2>/dev/null; then
+                  echo "✓ Successfully imported project with fallback ID"
+                  break
+                fi
+              done
+              echo "If import failed, Terraform will attempt to create/update the project."
+            fi
+          fi
         continue-on-error: true
         env:
+          VERCEL_API_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
           TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
           TF_VAR_google_maps_api_key: ${{ secrets.GOOGLE_MAPS_API_KEY }}
           TF_VAR_backend_api_url: ${{ secrets.BACKEND_API_URL }}
