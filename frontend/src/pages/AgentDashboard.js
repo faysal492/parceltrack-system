@@ -236,7 +236,7 @@ const AgentDashboard = () => {
       });
 
       // Pickup marker
-      const pickupMarker = new window.google.maps.Marker({
+      new window.google.maps.Marker({
         position: { lat: pickupLat, lng: pickupLng },
         map: map,
         title: 'Pickup Location',
@@ -245,7 +245,7 @@ const AgentDashboard = () => {
 
       // Delivery marker if coordinates exist
       if (deliveryLat && deliveryLng) {
-        const deliveryMarker = new window.google.maps.Marker({
+        new window.google.maps.Marker({
           position: { lat: deliveryLat, lng: deliveryLng },
           map: map,
           title: 'Delivery Location',
